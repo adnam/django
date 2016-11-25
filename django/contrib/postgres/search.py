@@ -125,6 +125,7 @@ class SearchQueryCombinable(object):
 
 
 class SearchQuery(SearchQueryCombinable, Value):
+    function = 'plainto_tsquery'
     invert = False
     _output_field = SearchQueryField()
     config = None
@@ -147,10 +148,10 @@ class SearchQuery(SearchQueryCombinable, Value):
         params = [self.value]
         if self.config:
             config_sql, config_params = compiler.compile(self.config)
-            template = 'plainto_tsquery({}::regconfig, %s)'.format(config_sql)
+            template = '{}({}::regconfig, %s)'.format(self.function, config_sql)
             params = config_params + [self.value]
         else:
-            template = 'plainto_tsquery(%s)'
+            template = '{}(%s)'.format(self.function)
         if self.invert:
             template = '!!({})'.format(template)
         return template, params
@@ -166,6 +167,10 @@ class SearchQuery(SearchQueryCombinable, Value):
             'config': self.config,
         }
         return type(self)(self.value, **extra)
+
+
+class AdvancedSearchQuery(SearchQuery):
+    function = 'to_tsquery'
 
 
 class CombinedSearchQuery(SearchQueryCombinable, CombinedExpression):

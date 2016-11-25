@@ -6,7 +6,7 @@ All text copyright Python (Monty) Pictures. Thanks to sacred-texts.com for the
 transcript.
 """
 from django.contrib.postgres.search import (
-    SearchQuery, SearchRank, SearchVector,
+    SearchQuery, SearchRank, SearchVector, AdvancedSearchQuery,
 )
 from django.db.models import F
 from django.test import modify_settings
@@ -286,3 +286,13 @@ class TestRankingAndWeights(GrailTestData, PostgreSQLTestCase):
             rank=SearchRank(SearchVector('dialogue'), SearchQuery('brave sir robin')),
         ).filter(rank__gt=0.3)
         self.assertSequenceEqual(searched, [self.verse0])
+
+
+@modify_settings(INSTALLED_APPS={'append': 'django.contrib.postgres'})
+class AdvancedSearchQueryTest(GrailTestData, PostgreSQLTestCase):
+    def test_partial_word_match(self):
+        Line.objects.update(dialogue_search_vector=SearchVector('dialogue'))
+        searched = Line.objects.filter(dialogue_search_vector=SearchQuery('knee:*'))
+        self.assertEqual(0, searched.count())
+        searched = Line.objects.filter(dialogue_search_vector=AdvancedSearchQuery('knee:*'))
+        self.assertSequenceEqual(searched, [self.verse1])
